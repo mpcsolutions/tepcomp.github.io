@@ -1,0 +1,1158 @@
+
+from textwrap import dedent
+from pathlib import Path
+import zipfile, os, json
+
+site_dir = Path('/mnt/data/tepcomp-site')
+site_dir.mkdir(parents=True, exist_ok=True)
+
+html = dedent('''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TepComp Plumbing | Residential Plumbing Services</title>
+  <meta name="description" content="TepComp Plumbing provides dependable residential plumbing services including leak repairs, drain cleaning, water heater service, sump pumps, and fixture installations." />
+  <meta name="theme-color" content="#0f4c81" />
+  <meta property="og:title" content="TepComp Plumbing | Residential Plumbing Services" />
+  <meta property="og:description" content="Reliable residential plumbing services with fast scheduling, honest pricing, and quality workmanship." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=1200&q=80" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #0f4c81;
+      --navy-dark: #0b365c;
+      --teal: #0fb3a7;
+      --orange: #f59e0b;
+      --ink: #0f172a;
+      --muted: #475569;
+      --bg: #f8fafc;
+      --white: #ffffff;
+      --line: #e2e8f0;
+      --success: #16a34a;
+      --shadow: 0 20px 35px rgba(15, 23, 42, 0.10);
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: var(--white);
+      line-height: 1.65;
+    }
+
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+
+    .container {
+      width: min(calc(100% - 2rem), var(--max));
+      margin-inline: auto;
+    }
+
+    .topbar {
+      background: var(--navy-dark);
+      color: rgba(255,255,255,0.92);
+      font-size: 0.95rem;
+    }
+    .topbar-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.65rem 0;
+      flex-wrap: wrap;
+    }
+    .topbar-items {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(226,232,240,0.8);
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.95rem 0;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--navy-dark);
+    }
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--navy), var(--teal));
+      display: grid;
+      place-items: center;
+      color: white;
+      box-shadow: var(--shadow);
+      font-weight: 800;
+    }
+    .brand small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.15rem;
+      align-items: center;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .nav-links a:hover { color: var(--navy); }
+
+    .mobile-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.35rem;
+    }
+    .mobile-toggle span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--ink);
+      margin: 5px 0;
+      border-radius: 3px;
+      transition: 0.25s ease;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      padding: 0.9rem 1.25rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 700;
+      transition: 0.25s ease;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--navy), var(--teal));
+      color: white;
+      box-shadow: 0 16px 30px rgba(15, 76, 129, 0.22);
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-secondary {
+      background: white;
+      color: var(--navy-dark);
+      border-color: var(--line);
+    }
+    .btn-secondary:hover { border-color: var(--navy); color: var(--navy); }
+    .btn-light {
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.25);
+      color: white;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 85% 10%, rgba(15,179,167,0.18), transparent 18%),
+        radial-gradient(circle at 10% 20%, rgba(15,76,129,0.12), transparent 20%),
+        linear-gradient(180deg, #eff6ff 0%, #ffffff 80%);
+      padding: 5.5rem 0 4.5rem;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 2rem;
+      align-items: center;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.45rem 0.8rem;
+      background: rgba(15, 179, 167, 0.10);
+      color: var(--teal);
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    h1 {
+      font-size: clamp(2.5rem, 5vw, 4.6rem);
+      line-height: 1.06;
+      margin: 1rem 0 1rem;
+      letter-spacing: -0.03em;
+    }
+    .hero p.lead {
+      color: var(--muted);
+      font-size: 1.12rem;
+      max-width: 62ch;
+      margin-bottom: 1.6rem;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.4rem;
+    }
+    .quick-points {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .quick-points span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(22,163,74,0.14);
+    }
+
+    .hero-card {
+      position: relative;
+      background: white;
+      border: 1px solid rgba(226,232,240,0.95);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .hero-image {
+      min-height: 500px;
+      background:
+        linear-gradient(180deg, rgba(11,54,92,0.15), rgba(11,54,92,0.45)),
+        url('https://images.unsplash.com/photo-1585704032915-c3400ca199e7?auto=format&fit=crop&w=1200&q=80') center/cover;
+      display: flex;
+      align-items: flex-end;
+      padding: 1.2rem;
+    }
+    .floating-card {
+      width: min(100%, 360px);
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: 20px;
+      padding: 1rem;
+      box-shadow: 0 18px 30px rgba(15,23,42,0.14);
+      backdrop-filter: blur(8px);
+    }
+    .floating-card strong {
+      display: block;
+      font-size: 1.1rem;
+      margin-bottom: 0.35rem;
+      color: var(--navy-dark);
+    }
+    .badge-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.8rem;
+      margin-top: 1rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--navy-dark);
+    }
+    .badge {
+      background: #eff6ff;
+      border-radius: 14px;
+      padding: 0.8rem;
+      text-align: center;
+    }
+
+    main section {
+      padding: 5rem 0;
+    }
+    .section-title {
+      max-width: 720px;
+      margin-bottom: 2.2rem;
+    }
+    .section-title .kicker {
+      color: var(--teal);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+    }
+    .section-title h2 {
+      margin: 0.55rem 0 0.8rem;
+      font-size: clamp(1.8rem, 3vw, 3rem);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .section-title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .services-grid,
+    .stats-grid,
+    .testimonial-grid,
+    .contact-grid,
+    .reasons-grid {
+      display: grid;
+      gap: 1.2rem;
+    }
+
+    .services-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 1.4rem;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.04);
+      transition: 0.25s ease;
+      height: 100%;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow);
+      border-color: rgba(15,76,129,0.24);
+    }
+    .icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #dbeafe, #ccfbf1);
+      display: grid;
+      place-items: center;
+      color: var(--navy-dark);
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+    .card h3 {
+      margin: 0.1rem 0 0.55rem;
+      font-size: 1.18rem;
+    }
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .stats {
+      background: linear-gradient(135deg, var(--navy-dark), var(--navy));
+      color: white;
+    }
+    .stats-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 1.8rem;
+    }
+    .stat {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      backdrop-filter: blur(10px);
+    }
+    .stat strong {
+      display: block;
+      font-size: 2rem;
+      line-height: 1;
+      margin-bottom: 0.35rem;
+    }
+    .stat span {
+      color: rgba(255,255,255,0.8);
+      font-weight: 600;
+    }
+
+    .reasons-grid {
+      grid-template-columns: 1fr 1fr;
+      align-items: stretch;
+    }
+    .reason-list {
+      display: grid;
+      gap: 1rem;
+    }
+    .reason-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.9rem;
+      align-items: start;
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: white;
+    }
+    .reason-num {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--navy), var(--teal));
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+    .reason-item h3 { margin: 0 0 0.2rem; font-size: 1.05rem; }
+    .reason-item p { margin: 0; color: var(--muted); }
+    .feature-panel {
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(15,76,129,0.12), rgba(15,179,167,0.12)),
+        #f8fafc;
+      border: 1px solid var(--line);
+      padding: 1.6rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 100%;
+    }
+    .feature-panel h3 { margin-top: 0; font-size: 1.5rem; }
+    .feature-panel p { color: var(--muted); }
+    .check-list {
+      list-style: none;
+      padding: 0;
+      margin: 1rem 0 0;
+      display: grid;
+      gap: 0.8rem;
+    }
+    .check-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-weight: 600;
+    }
+    .check {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(22,163,74,0.12);
+      color: var(--success);
+      flex: 0 0 auto;
+      font-size: 0.9rem;
+    }
+
+    .testimonial-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .quote {
+      position: relative;
+    }
+    .quote::before {
+      content: '“';
+      position: absolute;
+      top: -0.45rem;
+      left: 1rem;
+      font-size: 4rem;
+      line-height: 1;
+      color: rgba(15,76,129,0.12);
+      font-weight: 800;
+    }
+    .quote p {
+      position: relative;
+      z-index: 1;
+    }
+    .reviewer {
+      margin-top: 1rem;
+      font-weight: 700;
+      color: var(--navy-dark);
+    }
+    .reviewer span {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .service-area {
+      background: #f8fafc;
+    }
+    .chips {
+      display: flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    .chip {
+      padding: 0.7rem 1rem;
+      border-radius: 999px;
+      background: white;
+      border: 1px solid var(--line);
+      font-weight: 700;
+      color: var(--navy-dark);
+    }
+
+    .cta {
+      background: linear-gradient(135deg, var(--navy), var(--teal));
+      color: white;
+    }
+    .cta-inner {
+      display: grid;
+      grid-template-columns: 1.1fr auto;
+      gap: 1rem;
+      align-items: center;
+    }
+    .cta h2 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      line-height: 1.1;
+    }
+    .cta p { margin: 0; color: rgba(255,255,255,0.88); }
+
+    .contact-grid {
+      grid-template-columns: 0.95fr 1.05fr;
+      align-items: start;
+    }
+    .contact-card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 1.4rem;
+      box-shadow: 0 12px 25px rgba(15,23,42,0.05);
+    }
+    .contact-list {
+      list-style: none;
+      padding: 0;
+      margin: 1rem 0 0;
+      display: grid;
+      gap: 0.85rem;
+    }
+    .contact-list li {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      color: var(--muted);
+    }
+    .contact-list strong { color: var(--ink); display: block; }
+    form {
+      display: grid;
+      gap: 0.95rem;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.95rem;
+    }
+    label {
+      display: block;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-bottom: 0.45rem;
+      color: var(--ink);
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 0.95rem 1rem;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      font: inherit;
+      color: var(--ink);
+      background: white;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: rgba(15,76,129,0.6);
+      box-shadow: 0 0 0 4px rgba(15,76,129,0.10);
+    }
+    textarea { min-height: 150px; resize: vertical; }
+    .form-note {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 0;
+    }
+    .form-success {
+      display: none;
+      background: rgba(22,163,74,0.10);
+      color: #166534;
+      border: 1px solid rgba(22,163,74,0.22);
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
+      font-weight: 700;
+    }
+
+    footer {
+      background: #0b1220;
+      color: rgba(255,255,255,0.78);
+      padding: 1.6rem 0 2.2rem;
+    }
+    .footer-grid {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .footer-links {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-weight: 600;
+    }
+    .footer-links a:hover { color: white; }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .reasons-grid,
+      .contact-grid,
+      .cta-inner,
+      .stats-grid,
+      .services-grid,
+      .testimonial-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .contact-grid,
+      .hero-grid,
+      .reasons-grid,
+      .cta-inner {
+        grid-template-columns: 1fr;
+      }
+      .hero-image { min-height: 420px; }
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .services-grid,
+      .testimonial-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      .mobile-toggle { display: inline-block; }
+      .nav-links {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        left: 1rem;
+        right: 1rem;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 1rem;
+        box-shadow: var(--shadow);
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .nav-links.open { display: flex; }
+      .field-row,
+      .services-grid,
+      .testimonial-grid,
+      .stats-grid { grid-template-columns: 1fr; }
+      .hero {
+        padding-top: 4rem;
+      }
+      .topbar-inner {
+        justify-content: center;
+      }
+      .quick-points { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+      .badge-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-items">
+        <span>Serving homeowners with honest, high-quality plumbing service</span>
+      </div>
+      <div class="topbar-items">
+        <a href="tel:+12485550123">Call: (248) 555-0123</a>
+        <a href="mailto:hello@tepcomp.com">hello@tepcomp.com</a>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <div class="container nav">
+      <a href="#home" class="brand" aria-label="TepComp Plumbing home">
+        <div class="brand-mark">TP</div>
+        <div>
+          TepComp Plumbing
+          <small>Residential Plumbing Company</small>
+        </div>
+      </a>
+
+      <button class="mobile-toggle" id="mobileToggle" aria-label="Open navigation" aria-expanded="false" aria-controls="siteNav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="nav-links" id="siteNav">
+        <a href="#services">Services</a>
+        <a href="#why-us">Why Us</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#service-area">Service Area</a>
+        <a href="#contact">Contact</a>
+        <a class="btn btn-primary" href="tel:+12485550123">Schedule Service</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero" id="home">
+    <div class="container hero-grid">
+      <div>
+        <div class="eyebrow reveal">Fast help for leaks, drains, and water heaters</div>
+        <h1 class="reveal">Dependable residential plumbing done right the first time.</h1>
+        <p class="lead reveal">
+          From urgent leak repairs to water heater replacement and everyday fixture upgrades, TepComp Plumbing helps homeowners protect their homes with responsive service, transparent pricing, and clean workmanship.
+        </p>
+        <div class="hero-actions reveal">
+          <a class="btn btn-primary" href="tel:+12485550123">Call Now</a>
+          <a class="btn btn-secondary" href="#contact">Request an Estimate</a>
+        </div>
+        <div class="quick-points reveal">
+          <span><span class="dot"></span> Same-day scheduling available</span>
+          <span><span class="dot"></span> Friendly, respectful technicians</span>
+          <span><span class="dot"></span> Upfront pricing before work begins</span>
+        </div>
+      </div>
+
+      <div class="hero-card reveal" aria-hidden="true">
+        <div class="hero-image">
+          <div class="floating-card">
+            <strong>Home plumbing made simple.</strong>
+            <span>Leak repairs, drain cleaning, sump pumps, water heaters, faucet installs, and more.</span>
+            <div class="badge-row">
+              <div class="badge">Licensed &amp; Insured</div>
+              <div class="badge">Clean Work Areas</div>
+              <div class="badge">Clear Communication</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <section id="services">
+      <div class="container">
+        <div class="section-title reveal">
+          <div class="kicker">Services</div>
+          <h2>Residential plumbing services for everyday problems and bigger upgrades.</h2>
+          <p>
+            Whether you have a dripping faucet, a backed-up drain, or an aging water heater, we provide practical solutions that keep your home safe, functional, and comfortable.
+          </p>
+        </div>
+
+        <div class="services-grid">
+          <article class="card reveal">
+            <div class="icon">01</div>
+            <h3>Leak Detection &amp; Repair</h3>
+            <p>Fast diagnosis and repair for leaking pipes, fixtures, shutoffs, supply lines, and hidden water issues before they cause costly damage.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">02</div>
+            <h3>Drain Cleaning</h3>
+            <p>Kitchen, bath, shower, and floor drain cleaning to restore flow and help prevent recurring clogs and backups.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">03</div>
+            <h3>Water Heater Service</h3>
+            <p>Repair and replacement for traditional and tankless water heaters so your family has reliable hot water when you need it.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">04</div>
+            <h3>Fixture Installation</h3>
+            <p>Professional installation of faucets, sinks, toilets, garbage disposals, shower trim, and other everyday plumbing fixtures.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">05</div>
+            <h3>Sump Pumps &amp; Backup Systems</h3>
+            <p>Protection for basements and crawl spaces with sump pump repairs, replacements, and backup pump options.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">06</div>
+            <h3>Pipe &amp; Valve Replacements</h3>
+            <p>Upgrades for aging shutoff valves, supply lines, hose bibs, and sections of piping to improve reliability and reduce future risk.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="container">
+        <div class="section-title reveal">
+          <div class="kicker" style="color:#93c5fd;">What homeowners care about</div>
+          <h2 style="color:white;">Professional service that respects your time and your home.</h2>
+          <p style="color:rgba(255,255,255,0.8);">
+            We designed this site to highlight the trust signals most homeowners look for when choosing a plumber.
+          </p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat reveal"><strong>Same Day</strong><span>Scheduling for many service calls</span></div>
+          <div class="stat reveal"><strong>Upfront</strong><span>Pricing before the work starts</span></div>
+          <div class="stat reveal"><strong>Clean</strong><span>Respectful work areas and cleanup</span></div>
+          <div class="stat reveal"><strong>Reliable</strong><span>Repairs and installs built to last</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="why-us">
+      <div class="container reasons-grid">
+        <div>
+          <div class="section-title reveal">
+            <div class="kicker">Why TepComp</div>
+            <h2>Built to convert visitors into calls and estimate requests.</h2>
+            <p>
+              This layout is optimized for a local home-services business: a strong hero section, easy calls-to-action, clear services, trust-building content, and a contact area that works well on mobile.
+            </p>
+          </div>
+          <div class="reason-list">
+            <div class="reason-item reveal">
+              <div class="reason-num">1</div>
+              <div>
+                <h3>Clear service categories</h3>
+                <p>Visitors can immediately understand what you do without needing to search through multiple pages.</p>
+              </div>
+            </div>
+            <div class="reason-item reveal">
+              <div class="reason-num">2</div>
+              <div>
+                <h3>Strong local trust messaging</h3>
+                <p>Highlights the things homeowners want most: honesty, responsiveness, workmanship, and cleanliness.</p>
+              </div>
+            </div>
+            <div class="reason-item reveal">
+              <div class="reason-num">3</div>
+              <div>
+                <h3>Mobile-friendly call buttons</h3>
+                <p>Prominent buttons make it easy for potential customers to call directly from their phone.</p>
+              </div>
+            </div>
+            <div class="reason-item reveal">
+              <div class="reason-num">4</div>
+              <div>
+                <h3>GitHub Pages ready</h3>
+                <p>This is a static website with no build tools required, making it easy to host and update in GitHub.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="feature-panel reveal">
+          <h3>Included in this starter site</h3>
+          <p>
+            A polished single-page website with modern styling, smooth scrolling navigation, reveal animations, SEO-friendly metadata, and a contact form that opens an email draft for a static hosting setup.
+          </p>
+          <ul class="check-list">
+            <li><span class="check">✓</span> Hero section with primary call to action</li>
+            <li><span class="check">✓</span> Service cards and trust-building copy</li>
+            <li><span class="check">✓</span> Testimonials and service area section</li>
+            <li><span class="check">✓</span> Contact form that works on static hosting</li>
+            <li><span class="check">✓</span> Easy placeholders to replace with real business info</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section id="reviews">
+      <div class="container">
+        <div class="section-title reveal">
+          <div class="kicker">Reviews</div>
+          <h2>Sample homeowner feedback section</h2>
+          <p>
+            Replace these with real customer testimonials, Google review quotes, or neighborhood recommendations once they are available.
+          </p>
+        </div>
+
+        <div class="testimonial-grid">
+          <article class="card quote reveal">
+            <p>
+              TepComp was quick to respond, explained the issue clearly, and fixed our leaking kitchen line without any pressure or surprises.
+            </p>
+            <div class="reviewer">A. Homeowner <span>Kitchen plumbing repair</span></div>
+          </article>
+          <article class="card quote reveal">
+            <p>
+              We had no hot water and needed help fast. The technician was professional, on time, and made the replacement process easy.
+            </p>
+            <div class="reviewer">B. Family <span>Water heater replacement</span></div>
+          </article>
+          <article class="card quote reveal">
+            <p>
+              Our basement sump pump failed during heavy rain. TepComp got us back up and running and walked us through backup options.
+            </p>
+            <div class="reviewer">C. Resident <span>Sump pump service</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="service-area" id="service-area">
+      <div class="container">
+        <div class="section-title reveal">
+          <div class="kicker">Service Area</div>
+          <h2>Add the cities and neighborhoods you serve.</h2>
+          <p>
+            Update this section with your actual service area to help visitors know they are in-range and to support local SEO.
+          </p>
+        </div>
+        <div class="chips reveal">
+          <span class="chip">Warren</span>
+          <span class="chip">Sterling Heights</span>
+          <span class="chip">Troy</span>
+          <span class="chip">Royal Oak</span>
+          <span class="chip">Madison Heights</span>
+          <span class="chip">Clawson</span>
+          <span class="chip">Birmingham</span>
+          <span class="chip">Metro Detroit</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="container cta-inner reveal">
+        <div>
+          <h2>Need plumbing help at home?</h2>
+          <p>Call now for scheduling, or send a quick message and we’ll get back to you.</p>
+        </div>
+        <div>
+          <a class="btn btn-light" href="tel:+12485550123">(248) 555-0123</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="container contact-grid">
+        <div>
+          <div class="section-title reveal">
+            <div class="kicker">Contact</div>
+            <h2>Request service or an estimate</h2>
+            <p>
+              Because GitHub Pages is static hosting, this demo form opens your email app with the information filled in. If you want, I can also convert it to use Formspree, Netlify Forms, or another hosted form service.
+            </p>
+          </div>
+          <div class="contact-card reveal">
+            <h3>Business info placeholders</h3>
+            <ul class="contact-list">
+              <li>
+                <div class="icon" style="width:42px;height:42px;border-radius:12px;margin:0;">☎</div>
+                <div><strong>Phone</strong><span>(248) 555-0123</span></div>
+              </li>
+              <li>
+                <div class="icon" style="width:42px;height:42px;border-radius:12px;margin:0;">✉</div>
+                <div><strong>Email</strong><span>hello@tepcomp.com</span></div>
+              </li>
+              <li>
+                <div class="icon" style="width:42px;height:42px;border-radius:12px;margin:0;">⌂</div>
+                <div><strong>Service Area</strong><span>Update with the cities and counties you serve</span></div>
+              </li>
+              <li>
+                <div class="icon" style="width:42px;height:42px;border-radius:12px;margin:0;">⏰</div>
+                <div><strong>Hours</strong><span>Mon–Fri: 8:00 AM–6:00 PM · Emergency availability optional</span></div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="contact-card reveal">
+          <div class="form-success" id="formSuccess">Your email app should open with this message pre-filled. If it doesn't, email hello@tepcomp.com directly.</div>
+          <form id="contactForm">
+            <div class="field-row">
+              <div>
+                <label for="name">Full Name</label>
+                <input id="name" name="name" type="text" placeholder="Your name" required />
+              </div>
+              <div>
+                <label for="phone">Phone Number</label>
+                <input id="phone" name="phone" type="tel" placeholder="Your phone number" required />
+              </div>
+            </div>
+            <div class="field-row">
+              <div>
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" placeholder="you@example.com" required />
+              </div>
+              <div>
+                <label for="service">Service Needed</label>
+                <select id="service" name="service" required>
+                  <option value="">Select a service</option>
+                  <option>Leak Repair</option>
+                  <option>Drain Cleaning</option>
+                  <option>Water Heater</option>
+                  <option>Fixture Installation</option>
+                  <option>Sump Pump</option>
+                  <option>Other Plumbing Service</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label for="message">How can we help?</label>
+              <textarea id="message" name="message" placeholder="Tell us what's going on, where the issue is, and when you'd like service."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Send Request</button>
+            <p class="form-note">Tip: Replace the email address, phone number, service area, hours, and testimonials before publishing.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <div>
+        <strong style="display:block;color:white;margin-bottom:0.3rem;">TepComp Plumbing</strong>
+        <span>Residential plumbing website starter for GitHub Pages.</span>
+      </div>
+      <div class="footer-links">
+        <a href="#services">Services</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#service-area">Service Area</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const toggle = document.getElementById('mobileToggle');
+    const nav = document.getElementById('siteNav');
+
+    toggle.addEventListener('click', () => {
+      const isOpen = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    nav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        nav.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.14 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    const form = document.getElementById('contactForm');
+    const success = document.getElementById('formSuccess');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const service = document.getElementById('service').value.trim();
+      const message = document.getElementById('message').value.trim();
+
+      const subject = encodeURIComponent(`Service Request from ${name}`);
+      const body = encodeURIComponent(
+        `Name: ${name}\nPhone: ${phone}\nEmail: ${email}\nService Needed: ${service}\n\nMessage:\n${message}`
+      );
+
+      success.style.display = 'block';
+      window.location.href = `mailto:hello@tepcomp.com?subject=${subject}&body=${body}`;
+    });
+
+    const currentYear = new Date().getFullYear();
+    const footer = document.querySelector('footer strong');
+    footer.innerHTML = `TepComp Plumbing · ${currentYear}`;
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Plumber",
+    "name": "TepComp Plumbing",
+    "url": "https://tepcomp.com/",
+    "telephone": "+1-248-555-0123",
+    "email": "hello@tepcomp.com",
+    "areaServed": ["Warren", "Sterling Heights", "Troy", "Royal Oak", "Metro Detroit"],
+    "description": "Residential plumbing company providing leak repair, drain cleaning, water heater service, fixture installation, and sump pump service.",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Warren",
+      "addressRegion": "MI",
+      "addressCountry": "US"
+    }
+  }
+  </script>
+</body>
+</html>
+''').strip()
+
+readme = dedent('''
+# TepComp Plumbing Website
+
+This is a static single-page website designed for **tepcomp.com** and built to be hosted on **GitHub Pages**.
+
+## Files
+- `index.html` — main website file
+
+## Before you publish
+Update these placeholder items in `index.html`:
+- Business phone number
+- Business email address
+- Service area / cities served
+- Operating hours
+- Testimonials
+- Any licensing, certifications, or warranty details you want to mention
+
+## Publish on GitHub Pages
+1. Create or open your GitHub repository.
+2. Upload `index.html` to the root of the repo.
+3. In GitHub, go to **Settings** → **Pages**.
+4. Under **Build and deployment**, choose **Deploy from a branch**.
+5. Select the branch (usually `main`) and folder `/root`.
+6. Save. GitHub Pages will publish the site.
+
+## Optional next upgrades
+- Add a dedicated `services.html` page
+- Add a real contact form service (Formspree / Netlify Forms)
+- Add Google Maps embed
+- Add your actual logo and before/after project photos
+- Add a favicon and custom Open Graph image
+''').strip()
+
+(site_dir / 'index.html').write_text(html, encoding='utf-8')
+(site_dir / 'README.md').write_text(readme, encoding='utf-8')
+
+zip_path = Path('/mnt/data/tepcomp-site.zip')
+with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for file in site_dir.iterdir():
+        zf.write(file, arcname=file.name)
+
+print(json.dumps({
+    'site_dir': str(site_dir),
+    'zip_path': str(zip_path),
+    'files': [p.name for p in site_dir.iterdir()]
+}, indent=2))
