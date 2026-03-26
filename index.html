@@ -689,7 +689,7 @@ html = dedent('''
       </div>
       <div class="topbar-items">
         <a href="tel:+12485550123">Call: (248) 555-0123</a>
-        <a href="mailto:hello@tepcomp.com">hello@tepcomp.com</a>
+       
       </div>
     </div>
   </div>
@@ -964,7 +964,7 @@ html = dedent('''
               </li>
               <li>
                 <div class="icon" style="width:42px;height:42px;border-radius:12px;margin:0;">✉</div>
-                <div><strong>Email</strong><span>hello@tepcomp.com</span></div>
+                <div><strong>Email</strong>
               </li>
               <li>
                 <div class="icon" style="width:42px;height:42px;border-radius:12px;margin:0;">⌂</div>
@@ -979,7 +979,7 @@ html = dedent('''
         </div>
 
         <div class="contact-card reveal">
-          <div class="form-success" id="formSuccess">Your email app should open with this message pre-filled. If it doesn't, email hello@tepcomp.com directly.</div>
+          <div class="form-success" id="formSuccess">Your email app should open with this message pre-filled. If it doesn't, email  directly.</div>
           <form id="contactForm">
             <div class="field-row">
               <div>
@@ -1080,7 +1080,7 @@ html = dedent('''
       );
 
       success.style.display = 'block';
-      window.location.href = `mailto:hello@tepcomp.com?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
     });
 
     const currentYear = new Date().getFullYear();
@@ -1095,7 +1095,7 @@ html = dedent('''
     "name": "TepComp Plumbing",
     "url": "https://tepcomp.com/",
     "telephone": "+1-248-555-0123",
-    "email": "hello@tepcomp.com",
+    
     "areaServed": ["Warren", "Sterling Heights", "Troy", "Royal Oak", "Metro Detroit"],
     "description": "Residential plumbing company providing leak repair, drain cleaning, water heater service, fixture installation, and sump pump service.",
     "address": {
